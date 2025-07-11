@@ -46,8 +46,6 @@
     <p>Select a page from the list below:</p>
     
     <div id="pages-list" class="pages-container">
-        <!-- Pages will be loaded here -->
-        <p id="loading">Loading pages...</p>
     </div>
 
     <script>
@@ -59,13 +57,11 @@
                 }
                 return response.json();
             })
-            .then(data => {
+            .then(pages => {
                 const pagesContainer = document.getElementById('pages-list');
-                // Remove loading message
-                document.getElementById('loading').remove();
                 
                 // Add each page as a card
-                data.pages.forEach(page => {
+                pages.forEach(page => {
                     const pageCard = document.createElement('a');
                     pageCard.href = encodeURIComponent(page.path);
                     pageCard.className = 'page-card';
@@ -88,7 +84,7 @@
                 });
             })
             .catch(error => {
-                document.getElementById('loading').textContent = 'Error loading pages: ' + error.message;
+                console.error(error.message);
             });
     </script>
 </body>
