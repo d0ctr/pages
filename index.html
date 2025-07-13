@@ -63,7 +63,7 @@
                 // Add each page as a card
                 pages.forEach(page => {
                     const pageCard = document.createElement('a');
-                    pageCard.href = encodeURIComponent(page.path);
+                    pageCard.href = encodeURI(page.path);
                     pageCard.className = 'page-card';
                     pageCard.style.textDecoration = 'none';
                     pageCard.style.color = 'inherit';
