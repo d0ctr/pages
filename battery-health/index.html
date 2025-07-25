@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battery Health Data Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            padding: 2rem;
+            background: #f8fafc;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid;
+            transition: transform 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .stat-card.blue { border-left-color: #3b82f6; }
+        .stat-card.green { border-left-color: #10b981; }
+        .stat-card.purple { border-left-color: #8b5cf6; }
+        .stat-card.amber { border-left-color: #f59e0b; }
+
+        .stat-card h3 {
+            color: #64748b;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .controls {
+            padding: 2rem;
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.875rem;
+        }
+
+        .btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:not(.active) {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .btn:not(.active):hover {
+            background: #e2e8f0;
+        }
+
+        .chart-container {
+            padding: 2rem;
+            background: white;
+        }
+
+        .chart-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+            margin-bottom: 2rem;
+        }
+
+        .insights {
+            background: #f8fafc;
+            padding: 2rem;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .insights h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 1rem;
+        }
+
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .insight-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 3px solid #3b82f6;
+        }
+
+        .insight-item strong {
+            color: #1e293b;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 12px;
+            }
+            
+            .header {
+                padding: 1.5rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Battery Health Data Analysis</h1>
+            <p>Comprehensive visualization of battery cycle count and health metrics over time</p>
+        </div>
+
+        <div id="content" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-card blue">
+                    <h3>Total Readings</h3>
+                    <div class="value" id="totalReadings">-</div>
+                </div>
+                <div class="stat-card green">
+                    <h3>Cycle Range</h3>
+                    <div class="value" id="cycleRange">-</div>
+                </div>
+                <div class="stat-card purple">
+                    <h3>Date Range</h3>
+                    <div class="value" id="dateRange" style="font-size: 1rem;">-</div>
+                </div>
+                <div class="stat-card amber">
+                    <h3>Avg Daily Cycles</h3>
+                    <div class="value" id="avgDailyCycles">-</div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <div class="btn-group">
+                    <button class="btn active" onclick="switchView('timeline')">Timeline View</button>
+                    <button class="btn" onclick="switchView('scatter')">Scatter Plot</button>
+                    <button class="btn" onclick="switchView('monthly')">Monthly Summary</button>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h2 class="chart-title" id="chartTitle">Battery Cycle Count Over Time</h2>
+                <div class="chart-wrapper">
+                    <canvas id="chart"></canvas>
+                </div>
+            </div>
+
+            <div class="insights">
+                <h3>Key Insights</h3>
+                <div class="insights-grid">
+                    <div class="insight-item">
+                        <strong>Battery Health:</strong> All readings show "Normal" status, indicating consistent battery health throughout the monitoring period.
+                    </div>
+                    <div class="insight-item">
+                        <strong>Maximum Capacity:</strong> Maintained at 100% across all readings, suggesting excellent battery performance.
+                    </div>
+                    <div class="insight-item">
+                        <strong>Cycle Progression:</strong> <span id="cycleProgression">Gradual increase in cycles over the monitoring period.</span>
+                    </div>
+                    <div class="insight-item">
+                        <strong>Usage Pattern:</strong> <span id="usagePattern">Regular device usage pattern detected.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let batteryData = [];
+        let currentChart = null;
+        let currentView = 'timeline';
+
+        // Parse CSV data
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            const headers = lines[0].split(',').map(h => h.trim());
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',');
+                const row = {};
+                headers.forEach((header, index) => {
+                    let value = values[index]?.trim();
+                    if (header === 'maximum_capacity' || header === 'cycle_count') {
+                        value = parseFloat(value);
+                    }
+                    row[header] = value;
+                });
+                if (row.date && !isNaN(row.cycle_count)) {
+                    data.push(row);
+                }
+            }
+            return data;
+        }
+
+        // Load and process data
+        async function loadData() {
+            try {
+                const response = await fetch('data.csv');
+                const data = await response.text();
+                batteryData = parseCSV(data);
+                
+                // Sort by date
+                batteryData.sort((a, b) => new Date(a.date) - new Date(b.date));
+                
+                updateStatistics();
+                createChart();
+                
+                document.getElementById('content').style.display = 'block';
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            const totalReadings = batteryData.length;
+            const cycles = batteryData.map(d => d.cycle_count);
+            const minCycle = Math.min(...cycles);
+            const maxCycle = Math.max(...cycles);
+            
+            const startDate = new Date(batteryData[0].date);
+            const endDate = new Date(batteryData[batteryData.length - 1].date);
+            const daysDiff = (endDate - startDate) / (1000 * 60 * 60 * 24);
+            const avgDailyCycles = daysDiff > 0 ? (maxCycle - minCycle) / daysDiff : 0;
+
+            document.getElementById('totalReadings').textContent = totalReadings;
+            document.getElementById('cycleRange').textContent = `${minCycle}-${maxCycle}`;
+            document.getElementById('dateRange').textContent = `${batteryData[0].date} to ${batteryData[batteryData.length - 1].date}`;
+            document.getElementById('avgDailyCycles').textContent = avgDailyCycles.toFixed(1);
+            
+            // Update insights
+            document.getElementById('cycleProgression').textContent = 
+                `Gradual increase from ${minCycle} to ${maxCycle} cycles over the monitoring period.`;
+            document.getElementById('usagePattern').textContent = 
+                `Approximately ${avgDailyCycles.toFixed(1)} cycles per day on average, indicating moderate to regular device usage.`;
+        }
+
+        // Switch between different views
+        function switchView(view) {
+            currentView = view;
+            
+            // Update button states
+            document.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update chart title
+            const titles = {
+                timeline: 'Battery Cycle Count Over Time',
+                scatter: 'Cycle Count Distribution',
+                monthly: 'Monthly Statistics'
+            };
+            document.getElementById('chartTitle').textContent = titles[view];
+            
+            createChart();
+        }
+
+        // Create chart based on current view
+        function createChart() {
+            const ctx = document.getElementById('chart').getContext('2d');
+            
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            let chartConfig;
+            
+            if (currentView === 'timeline') {
+                chartConfig = createTimelineChart();
+            } else if (currentView === 'scatter') {
+                chartConfig = createScatterChart();
+            } else if (currentView === 'monthly') {
+                chartConfig = createMonthlyChart();
+            }
+
+            currentChart = new Chart(ctx, chartConfig);
+        }
+
+        // Timeline chart configuration
+        function createTimelineChart() {
+            const labels = batteryData.map((_, index) => {
+                const date = new Date(batteryData[index].date);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+
+            return {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Cycle Count',
+                        data: batteryData.map(d => d.cycle_count),
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#3b82f6',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            ticks: {
+                                maxTicksLimit: 8
+                            }
+                        },
+                        y: {
+                            display: true,
+                            beginAtZero: false
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            };
+        }
+
+        // Scatter chart configuration
+        function createScatterChart() {
+            const scatterData = batteryData.map((item, index) => ({
+                x: index,
+                y: item.cycle_count
+            }));
+
+            return {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Cycle Count',
+                        data: scatterData,
+                        backgroundColor: '#10b981',
+                        borderColor: '#059669',
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Reading Index'
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Cycle Count'
+                            },
+                            beginAtZero: false
+                        }
+                    }
+                }
+            };
+        }
+
+        // Monthly chart configuration
+        function createMonthlyChart() {
+            // Group data by month
+            const monthlyStats = {};
+            
+            batteryData.forEach(item => {
+                const date = new Date(item.date);
+                const monthKey = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+                
+                if (!monthlyStats[monthKey]) {
+                    monthlyStats[monthKey] = {
+                        cycles: [],
+                        count: 0
+                    };
+                }
+                
+                monthlyStats[monthKey].cycles.push(item.cycle_count);
+                monthlyStats[monthKey].count++;
+            });
+
+            const months = Object.keys(monthlyStats);
+            const avgCycles = months.map(month => {
+                const cycles = monthlyStats[month].cycles;
+                return Math.round(cycles.reduce((a, b) => a + b, 0) / cycles.length);
+            });
+            const readingCounts = months.map(month => monthlyStats[month].count);
+
+            return {
+                type: 'bar',
+                data: {
+                    labels: months,
+                    datasets: [
+                        {
+                            label: 'Average Cycles',
+                            data: avgCycles,
+                            backgroundColor: '#8b5cf6',
+                            borderColor: '#7c3aed',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Reading Count',
+                            data: readingCounts,
+                            backgroundColor: '#f59e0b',
+                            borderColor: '#d97706',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true
+                        },
+                        y: {
+                            display: true,
+                            beginAtZero: true
+                        }
+                    }
+                }
+            };
+        }
+
+        // Initialize the application
+        loadData();
+    </script>
+</body>
+</html>
