@@ -1,4 +1,5 @@
 [
   { "title": "Chadington", "path": "chadington/" },
-  { "title": "Ölsremma", "path": "ölsremma/" }
+  { "title": "Ölsremma", "path": "ölsremma/" },
+  { "title": "Battery Health", "path": "battery-health/" },
 ]
