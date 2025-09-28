@@ -48,44 +48,56 @@
     <div id="pages-list" class="pages-container">
     </div>
 
+    <div id="error"></div>
+
     <script>
         // Fetch the pages registry
-        fetch('pages.json')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to load pages registry');
-                }
-                return response.json();
-            })
-            .then(pages => {
-                const pagesContainer = document.getElementById('pages-list');
-                
-                // Add each page as a card
-                pages.forEach(page => {
-                    const pageCard = document.createElement('a');
-                    pageCard.href = encodeURI(page.path);
-                    pageCard.className = 'page-card';
-                    pageCard.style.textDecoration = 'none';
-                    pageCard.style.color = 'inherit';
-                    
-                    const title = document.createElement('h2');
-                    title.className = 'page-title';
-                    title.textContent = page.title;
-                  
-                    pageCard.appendChild(title);
-                    pagesContainer.appendChild(pageCard);
-
-                    if (page.description) {
-                        const description = document.createElement('p');
-                        description.className = 'page-description';
-                        description.textContent = page.description;
-                        pageCard.appendChild(description);
-                    }
-                });
-            })
-            .catch(error => {
-                console.error(error.message);
-            });
+            try {
+                fetch('pages.json')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to load pages registry');
+                        }
+                        return response.json();
+                    })
+                    .then(pages => {
+                        const pagesContainer = document.getElementById('pages-list');
+                        
+                        // Add each page as a card
+                        pages.forEach(page => {
+                            const pageCard = document.createElement('a');
+                            pageCard.href = encodeURI(page.path);
+                            pageCard.className = 'page-card';
+                            pageCard.style.textDecoration = 'none';
+                            pageCard.style.color = 'inherit';
+                            
+                            const title = document.createElement('h2');
+                            title.className = 'page-title';
+                            title.textContent = page.title;
+                          
+                            pageCard.appendChild(title);
+                            pagesContainer.appendChild(pageCard);
+        
+                            if (page.description) {
+                                const description = document.createElement('p');
+                                description.className = 'page-description';
+                                description.textContent = page.description;
+                                pageCard.appendChild(description);
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        console.error(error);
+                        const msg = document.createElement('p');
+                        msg.textContent = `inside fetch: ${JSON.stringify(error, null, 2)}`;
+                        document.getElementById('error').appendChild(msg);
+                    });
+            } catch (err) {
+                console.error(err);
+                const msg = document.createElement('p');
+                msg.textContent = `outside fetch: ${JSON.stringify(err, null, 2)}`;
+                document.getElementById('error').appendChild(msg);
+            }
     </script>
 </body>
 </html>
